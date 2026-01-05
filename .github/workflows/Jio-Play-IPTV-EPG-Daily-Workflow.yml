@@ -1,28 +1,63 @@
-name: Jio Play IPTV EPG Daily Workflow
+name: name: EPG-Grabber
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "00 21  * * *"
-  push:
-    branches: [ main ]
+    - cron: '0 0 * * *'  # Daily at midnight UTC (adjust for IST: '30 18 * * *')
+  workflow_dispatch:  # Manual trigger
 
 jobs:
-
-  epg:
-    name: Jio Play IPTV EPG Setup
+  update:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Grab India EPG
+        run: npm run grab -- --channels=grab-channels.xml --gzip --output=epg.xml.gz --days=7
+      - name: Commit EPG file
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add epg.xml.gz
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Update India TV EPG [$(date +'%Y-%m-%d')]"
+            git push
+          fi
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
 
-    - name: Get EPG Data
-      run: chmod +x bin/epg_linux_x64 && ./bin/epg_linux_x64
-    
-    - name: Update release
-      env:
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-      run: |
-        hub release edit -a epg.xml -a epg.xml.gz -m "EPG has been updated." latest
-  
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC (adjust for IST: '30 18 * * *')
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Grab India EPG
+        run: npm run grab -- --channels=grab-channels.xml --gzip --output=epg.xml.gz --days=7
+      - name: Commit EPG file
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add epg.xml.gz
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Update India TV EPG [$(date +'%Y-%m-%d')]"
+            git push
+          fi
