@@ -20,7 +20,7 @@ jobs:
           token: ${{ steps.create-app-token.outputs.token }}
       - name: setup git
         run: |
-          git config user.name "Mobassar@4u"
+          git config user.name "Mobassar4u"
           git config user.email "92091277+Mobassar4u@users.noreply.github.com"
       - uses: actions/setup-node@v3
         if: ${{ !env.ACT }}
