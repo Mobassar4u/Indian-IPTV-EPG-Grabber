@@ -1,4 +1,4 @@
-name: IPTV-EPG Update
+name: IPTV-EPG Updater
 on:
   schedule:
     - cron: '30 18 * * *'  # 12:00 AM IST
