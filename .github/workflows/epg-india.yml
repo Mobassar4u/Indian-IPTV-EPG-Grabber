@@ -13,56 +13,61 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Generate India EPG (NO NPM REQUIRED)
+      - name: Generate India EPG
         run: |
-          # Indian TV Channels EPG - 7 days
+          # Create complete EPG XML
           cat > epg_india.xml << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <tv generator-info-name="India-TV-EPG" generator-info-url="https://github.com/Mobassar4u/IPTV-EPG-Grabber">
-            <channel id="StarPlus.in">
-              <display-name>Star Plus HD</display-name>
-              <icon src="https://i.imgur.com/starplus.png"/>
-            </channel>
-            <channel id="ZeeTV.in">
-              <display-name>Zee TV HD</display-name>
-              <icon src="https://i.imgur.com/zeetv.png"/>
-            </channel>
-            <channel id="Colors.in">
-              <display-name>Colors HD</display-name>
-              <icon src="https://i.imgur.com/colors.png"/>
-            </channel>
-            <channel id="SonySAB.in">
-              <display-name>Sony SAB HD</display-name>
-              <icon src="https://i.imgur.com/sonysab.png"/>
-            </channel>
-          EOF
-
-          # Add 7 days programs
-          for day in {0..6}; do
-            DATE=$(date -d "+$day days" +%Y%m%d)
-            for CHANNEL in StarPlus.in ZeeTV.in Colors.in SonySAB.in; do
-              case $CHANNEL in
-                StarPlus.in) NAME="Star Plus HD" ;;
-                ZeeTV.in) NAME="Zee TV HD" ;;
-                Colors.in) NAME="Colors HD" ;;
-                SonySAB.in) NAME="Sony SAB HD" ;;
-              esac
-              
-              cat >> epg_india.xml << EOF
-            <programme start="$DATE0000 +0530" stop="$DATE2359 +0530" channel="$CHANNEL">
-              <title lang="en">$NAME Live</title>
-              <desc lang="en">24x7 Live TV Broadcast - Entertainment Channel</desc>
-              <category lang="en">Entertainment</category>
-            </programme>
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="India-TV-EPG" generator-info-url="https://github.com/Mobassar4u/IPTV-EPG-Grabber">
+  <channel id="StarPlus.in">
+    <display-name>Star Plus HD</display-name>
+    <icon src="https://i.imgur.com/starplus.png"/>
+  </channel>
+  <channel id="ZeeTV.in">
+    <display-name>Zee TV HD</display-name>
+    <icon src="https://i.imgur.com/zeetv.png"/>
+  </channel>
+  <channel id="Colors.in">
+    <display-name>Colors HD</display-name>
+    <icon src="https://i.imgur.com/colors.png"/>
+  </channel>
+  <channel id="SonySAB.in">
+    <display-name>Sony SAB HD</display-name>
+    <icon src="https://i.imgur.com/sonysab.png"/>
+  </channel>
 EOF
-            done
+
+          # Generate 7 days of programs using simple date loop
+          for i in {0..6}; do
+            DATE=$(date -d "${i} days" +%Y%m%d 2>/dev/null || date -v+${i}d +%Y%m%d 2>/dev/null || date -d "1970-01-01 +${i} days" +%Y%m%d)
+            
+            cat >> epg_india.xml << EOF
+  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="StarPlus.in">
+    <title lang="en">Star Plus HD Live</title>
+    <desc lang="en">24x7 Live Entertainment</desc>
+    <category lang="en">Entertainment</category>
+  </programme>
+  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="ZeeTV.in">
+    <title lang="en">Zee TV HD Live</title>
+    <desc lang="en">24x7 Live Entertainment</desc>
+    <category lang="en">Entertainment</category>
+  </programme>
+  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="Colors.in">
+    <title lang="en">Colors HD Live</title>
+    <desc lang="en">24x7 Live Entertainment</desc>
+    <category lang="en">Entertainment</category>
+  </programme>
+  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="SonySAB.in">
+    <title lang="en">Sony SAB HD Live</title>
+    <desc lang="en">24x7 Live Comedy Entertainment</desc>
+    <category lang="en">Comedy</category>
+  </programme>
+EOF
           done
 
-          cat >> epg_india.xml << 'EOF'
-          </tv>
-          EOF
+          echo "</tv>" >> epg_india.xml
 
-          # Gzip compress
+          # Compress
           gzip -9 -c epg_india.xml > epg_india.xml.gz
           rm epg_india.xml
       
@@ -70,10 +75,11 @@ EOF
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add epg_india.xml.gz
+          git add epg_india.xml.gz || true
           if ! git diff --staged --quiet; then
             git commit -m "Update India EPG $(date +'%Y-%m-%d')"
             git push
           else
             echo "No changes"
           fi
+      
