@@ -35,16 +35,16 @@ def generate_epg():
     
     # Write XML
     tree = ET.ElementTree(epg)
-    tree.write('IN-TV-EPG.xml', encoding='utf-8', xml_declaration=True)
+    tree.write('in-tv-epg.xml', encoding='utf-8', xml_declaration=True)
     
     # ✅ FIXED: Use gzip.compress()
-    with open('IN-TV-EPG.xml', 'rb') as f:
+    with open('in-tv-epg.xml', 'rb') as f:
         xml_data = f.read()
     
     compressed = gzip.compress(xml_data)
-    with open('IN-TV-EPG.xml.gz', 'wb') as f:
+    with open('in-tv-epg.xml.gz', 'wb') as f:
         f.write(compressed)
 
 if __name__ == '__main__':
     generate_epg()
-    print("✅ EPG generated: IN-TV-EPG.xml.gz")
+    print("✅ EPG generated: in-tv-epg.xml.gz")
