@@ -4,7 +4,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '30 18 * * *'  # 12:00 AM IST daily
+    - cron: '30 18 * * *'  # 12:00 AM IST
   workflow_dispatch:
 
 jobs:
@@ -15,71 +15,39 @@ jobs:
       
       - name: Generate India EPG
         run: |
-          # Create complete EPG XML
-          cat > epg_india.xml << 'EOF'
+          cat > epg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<tv generator-info-name="India-TV-EPG" generator-info-url="https://github.com/Mobassar4u/IPTV-EPG-Grabber">
+<tv generator-info-name="India-EPG">
   <channel id="StarPlus.in">
     <display-name>Star Plus HD</display-name>
-    <icon src="https://i.imgur.com/starplus.png"/>
   </channel>
   <channel id="ZeeTV.in">
     <display-name>Zee TV HD</display-name>
-    <icon src="https://i.imgur.com/zeetv.png"/>
   </channel>
   <channel id="Colors.in">
     <display-name>Colors HD</display-name>
-    <icon src="https://i.imgur.com/colors.png"/>
   </channel>
-  <channel id="SonySAB.in">
-    <display-name>Sony SAB HD</display-name>
-    <icon src="https://i.imgur.com/sonysab.png"/>
-  </channel>
+</tv>
 EOF
 
-          # Generate 7 days of programs using simple date loop
+          # Generate 7 days programs
           for i in {0..6}; do
-            DATE=$(date -d "${i} days" +%Y%m%d 2>/dev/null || date -v+${i}d +%Y%m%d 2>/dev/null || date -d "1970-01-01 +${i} days" +%Y%m%d)
-            
-            cat >> epg_india.xml << EOF
-  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="StarPlus.in">
-    <title lang="en">Star Plus HD Live</title>
-    <desc lang="en">24x7 Live Entertainment</desc>
-    <category lang="en">Entertainment</category>
-  </programme>
-  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="ZeeTV.in">
-    <title lang="en">Zee TV HD Live</title>
-    <desc lang="en">24x7 Live Entertainment</desc>
-    <category lang="en">Entertainment</category>
-  </programme>
-  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="Colors.in">
-    <title lang="en">Colors HD Live</title>
-    <desc lang="en">24x7 Live Entertainment</desc>
-    <category lang="en">Entertainment</category>
-  </programme>
-  <programme start="${DATE}0000 +0530" stop="${DATE}2359 +0530" channel="SonySAB.in">
-    <title lang="en">Sony SAB HD Live</title>
-    <desc lang="en">24x7 Live Comedy Entertainment</desc>
-    <category lang="en">Comedy</category>
-  </programme>
-EOF
+            DATE=$(date -d "${i} days" +%Y%m%d 2>/dev/null || gdate -d "${i} days" +%Y%m%d 2>/dev/null || date -v+${i}d +%Y%m%d 2>/dev/null)
+            echo "  <programme start=\"${DATE}0000 +0530\" stop=\"${DATE}2359 +0530\" channel=\"StarPlus.in\">" >> epg.xml
+            echo "    <title lang=\"en\">Star Plus Live</title>" >> epg.xml
+            echo "    <desc lang=\"en\">Live Entertainment</desc>" >> epg.xml
+            echo "  </programme>" >> epg.xml
           done
 
-          echo "</tv>" >> epg_india.xml
-
-          # Compress
-          gzip -9 -c epg_india.xml > epg_india.xml.gz
-          rm epg_india.xml
+          gzip -c epg.xml > epg_india.xml.gz
+          rm epg.xml
       
-      - name: Commit EPG
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add epg_india.xml.gz || true
+          git add epg_india.xml.gz
           if ! git diff --staged --quiet; then
-            git commit -m "Update India EPG $(date +'%Y-%m-%d')"
+            git commit -m "Update EPG $(date +'%Y-%m-%d')"
             git push
-          else
-            echo "No changes"
           fi
-      
