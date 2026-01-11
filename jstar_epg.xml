@@ -480,18 +480,6 @@
     <display-name>RT TV</display-name>
     <icon src="https://jiotv.catchup.cdn.jio.com/dare_images/images/RT_TV.png" />
   </channel>
-  <channel id="1344">
-    <display-name>Sonic Malayalam</display-name>
-    <icon src="https://jiotv.catchup.cdn.jio.com/dare_images/images/Sonic_Malayalam.png" />
-  </channel>
-  <channel id="1345">
-    <display-name>Sonic Bangla</display-name>
-    <icon src="https://jiotv.catchup.cdn.jio.com/dare_images/images/Sonic_Bangla.png" />
-  </channel>
-  <channel id="1346">
-    <display-name>Sonic Marathi</display-name>
-    <icon src="https://jiotv.catchup.cdn.jio.com/dare_images/images/Sonic_Marathi.png" />
-  </channel>
   <channel id="1366">
     <display-name>Wow Cinema One</display-name>
     <icon src="https://jiotv.catchup.cdn.jio.com/dare_images/images/Wow_Cinema_One.png" />
