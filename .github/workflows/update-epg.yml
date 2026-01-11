@@ -1,6 +1,0 @@
-- name: Download Indian Data
-        run: |
-          # Fetch EPG (Schedules)
-          curl -L "https://iptv-org.github.io/epg/guides/in/tata-play.xml" -o public/data.xml
-          # Fetch M3U (Channel List with Logos)
-          curl -L "https://iptv-org.github.io/iptv/countries/in.m3u" -o public/channels.m3u
