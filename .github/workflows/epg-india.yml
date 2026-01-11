@@ -1,4 +1,7 @@
 name: India TV EPG Update
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: '30 18 * * *'  # 12:00 AM IST daily
