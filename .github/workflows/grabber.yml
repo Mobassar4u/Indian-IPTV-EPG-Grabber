@@ -16,7 +16,7 @@ jobs:
           # Download Indian EPG (Schedules)
           curl -L "https://raw.githubusercontent.com/iptv-org/epg/refs/heads/master/sites/jiotv.com/jiotv.com.channels.xml" -o public/epg.xml
           # Download Indian Channel List (Logos & IDs)
-          curl -L "https://iptv-org.github.io/iptv/countries/in.m3u" -o public/channels.m3u
+          curl -L "https://raw.githubusercontent.com/alex8875/m3u/refs/heads/main/jstar.m3u" -o public/channels.m3u
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
