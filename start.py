@@ -3,19 +3,20 @@ import json
 import datetime
 import os
 
-# 2026 Updated Headers
+# Updated Configuration for January 2026
 HEADERS = {
     "User-Agent": "JioTV 7.0.5 (Android 10)",
     "appkey": "NzNiMDhlYzQyNjJm",
     "devicetype": "phone",
     "os": "android",
     "versionCode": "300",
-    "Accept": "application/json"
+    "Accept": "application/json",
+    "Accept-Encoding": "gzip",
+    "Content-Type": "application/x-www-form-urlencoded"
 }
 
-def get_channels():
-    # Primary 2026 endpoint for channel lists
-    url = "https://jiotv.data.cdn.jio.com/apis/v1.3/getMobileChannelList/get/?os=android&devicetype=phone&version=300"
+# The endpoint structure may have changed to v1.3 or v1.4
+CHANNEL_URL = "https://jiotv.data.cdn.jio.com/apis/v1.3/getMobileChannelList/get/?os=android&devicetype=phone&version=300"
     try:
         response = requests.get(url, headers=HEADERS, timeout=15)
         if response.status_code == 200:
