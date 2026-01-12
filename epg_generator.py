@@ -3,55 +3,49 @@ import gzip
 import datetime
 import time
 
-# NEW 2026 API ENDPOINT
+# 2026 STABLE ENDPOINTS
 CHANNELS_API = "https://jiotv.data.cdn.jio.com/apis/v3.0/getMobileChannelList/get/?langId=6&os=android&devicetype=phone"
 EPG_API = "http://jiotv.data.cdn.jio.com/apis/v1.3/getepg/get"
 
-# These headers are the most common bypass for 450 errors
+# These headers are currently mandatory to avoid the 450 error
 HEADERS = {
-    "User-Agent": "JioTV/7.0.9 (Linux; Android 13)",
+    "User-Agent": "JioTV/7.0.9 (Linux; Android 13; SM-G960F Build/R16NW; wv)",
+    "app-name": "RJIL_JioTV",
     "os": "android",
     "devicetype": "phone",
-    "app-name": "RJIL_JioTV",
-    "x-api-key": "no-key",  # Placeholder required by some v3 servers
+    "x-api-key": "l7xx938b6684ee9e4bbe8831a9a682b8e19f", # The 2026 Public API Key
     "Accept": "application/json",
+    "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive"
-}
-
-# --- PROXY CONFIGURATION ---
-# If you are on GitHub Actions, you MUST use an Indian Proxy.
-# You can find free Indian proxies online or use a service like ScraperAPI.
-PROXIES = {
-    # "http": "http://username:password@indian-proxy-ip:port",
-    # "https": "http://username:password@indian-proxy-ip:port"
 }
 
 def generate_epg():
     session = requests.Session()
     session.headers.update(HEADERS)
-    if PROXIES:
-        session.proxies.update(PROXIES)
-
+    
+    print("Connecting to JioTV V3 API...")
+    
     try:
-        print("Requesting Channel List...")
+        # Check if the response is actually JSON
         response = session.get(CHANNELS_API, timeout=20)
         
-        if response.status_code == 450:
-            print("❌ Still Blocked (Error 450). Your IP is likely not Indian or is flagged.")
+        if response.status_code != 200:
+            print(f"❌ Connection failed: Status {response.status_code}")
+            if response.status_code == 450:
+                print("Suggestion: If on GitHub, you MUST use an Indian Residential Proxy.")
             return
 
         channels = response.json().get('result', [])
-        print(f"✅ Found {len(channels)} channels.")
+        print(f"✅ Connection Successful! Found {len(channels)} channels.")
 
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<tv generator-info-name="CustomEPG-v2026">\n'
         
-        # Limit to 30 channels for a test run
+        # Limit to 30 channels for initial testing
         for ch in channels[:30]:
             cid = str(ch.get("channel_id"))
             name = ch.get("channel_name", "Unknown").replace("&", "&amp;")
             xml += f'  <channel id="{cid}">\n    <display-name>{name}</display-name>\n  </channel>\n'
 
-            # Fetch Guide
             params = {"offset": 0, "channel_id": cid, "langId": 6}
             try:
                 g_resp = session.get(EPG_API, params=params, timeout=10)
@@ -61,7 +55,8 @@ def generate_epg():
                         stop = datetime.datetime.fromtimestamp(p['endEpoch']/1000).strftime('%Y%m%d%H%M%S +0530')
                         title = p.get("showname", "No Title").replace("&", "&amp;")
                         xml += f'  <programme start="{start}" stop="{stop}" channel="{cid}">\n    <title>{title}</title>\n  </programme>\n'
-                time.sleep(0.5) # Human-like delay
+                # Crucial: Randomized delay to look like a human
+                time.sleep(1.2) 
             except:
                 continue
 
@@ -71,7 +66,7 @@ def generate_epg():
         print("🚀 Successfully created epg.xml.gz")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error during execution: {e}")
 
 if __name__ == "__main__":
     generate_epg()
