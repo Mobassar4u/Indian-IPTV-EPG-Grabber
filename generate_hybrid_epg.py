@@ -1,66 +1,125 @@
-import requests, json
+import json
+import requests
 from datetime import datetime, timedelta
 from lxml import etree
 import pytz
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
+# ---------------- CONFIG ----------------
 TZ = pytz.timezone("Asia/Kolkata")
+DAYS = 7
+TIMEOUT = 20
 
-with open("channels.json") as f:
+# --------------- SESSION ----------------
+session = requests.Session()
+
+retries = Retry(
+    total=5,
+    backoff_factor=1,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"]
+)
+
+adapter = HTTPAdapter(max_retries=retries)
+session.mount("https://", adapter)
+
+BASE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Linux; Android 10)",
+    "Accept": "application/json",
+    "Connection": "close"
+}
+
+# --------------- LOAD CHANNELS ----------
+with open("channels.json", "r", encoding="utf-8") as f:
     channels = json.load(f)
 
+# --------------- XML ROOT ----------------
 root = etree.Element("tv")
 
-# Channel nodes
 for ch in channels:
-    c = etree.SubElement(root,"channel",id=ch["id"])
-    etree.SubElement(c,"display-name").text = ch["name"]
-    etree.SubElement(c,"icon",src=ch["logo"])
+    c = etree.SubElement(root, "channel", id=ch["id"])
+    etree.SubElement(c, "display-name").text = ch["name"]
+    etree.SubElement(c, "icon", src=ch["logo"])
 
-# Tata Play feed
-def tata_epg(cid, date):
-    url = f"https://tm.tapi.tatasky.com/tata-sky-epg/v3/epg/channel/{cid}/date/{date}"
-    r = requests.get(url,timeout=10)
-    if r.status_code != 200:
+# --------------- TATA PLAY EPG ----------
+def tata_epg(channel_id, date):
+    try:
+        url = f"https://tm.tapi.tatasky.com/tata-sky-epg/v3/epg/channel/{channel_id}/date/{date}"
+        r = session.get(url, headers=BASE_HEADERS, timeout=TIMEOUT)
+        if r.status_code != 200:
+            return []
+        return r.json().get("programmes", [])
+    except Exception:
         return []
-    return r.json().get("programmes",[])
 
-# JioTV feed
-def jio_epg(cid):
-    url = f"https://jiotvapi.media.jio.com/apis/v1.4/getepg/get?channel_id={cid}"
-    r = requests.get(url,timeout=10)
-    if r.status_code != 200:
+# --------------- JIOTV EPG --------------
+def jio_epg(channel_id):
+    try:
+        url = "https://jiotvapi.media.jio.com/apis/v1.4/getepg/get"
+        headers = {
+            **BASE_HEADERS,
+            "Referer": "https://www.jiotv.com/",
+            "Origin": "https://www.jiotv.com"
+        }
+        r = session.get(url, headers=headers, params={"channel_id": channel_id}, timeout=TIMEOUT)
+        if r.status_code != 200:
+            return []
+        return r.json().get("epg", [])
+    except Exception:
         return []
-    return r.json().get("epg",[])
 
-today = datetime.now(TZ)
+# --------------- GENERATE EPG -----------
+now = datetime.now(TZ)
 
 for ch in channels:
-    # 7 days Tata Play
-    for i in range(7):
-        date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
-        for p in tata_epg(ch["tata_id"], date):
-            s = datetime.fromtimestamp(p["startTime"]/1000, TZ)
-            e = datetime.fromtimestamp(p["endTime"]/1000, TZ)
+    # Tata Play (primary)
+    for d in range(DAYS):
+        date = (now + timedelta(days=d)).strftime("%Y-%m-%d")
+        programs = tata_epg(ch.get("tata_id"), date)
 
-            pr = etree.SubElement(root,"programme",
+        for p in programs:
+            try:
+                start = datetime.fromtimestamp(p["startTime"] / 1000, TZ)
+                stop = datetime.fromtimestamp(p["endTime"] / 1000, TZ)
+
+                pr = etree.SubElement(
+                    root,
+                    "programme",
+                    channel=ch["id"],
+                    start=start.strftime("%Y%m%d%H%M%S %z"),
+                    stop=stop.strftime("%Y%m%d%H%M%S %z")
+                )
+                etree.SubElement(pr, "title").text = p.get("title", "N/A")
+                etree.SubElement(pr, "desc").text = p.get("description", "")
+            except Exception:
+                continue
+
+    # JioTV (fallback / today only)
+    for p in jio_epg(ch.get("jio_id")):
+        try:
+            start = datetime.fromtimestamp(int(p["start_time"]), TZ)
+            stop = datetime.fromtimestamp(int(p["end_time"]), TZ)
+
+            pr = etree.SubElement(
+                root,
+                "programme",
                 channel=ch["id"],
-                start=s.strftime("%Y%m%d%H%M%S %z"),
-                stop=e.strftime("%Y%m%d%H%M%S %z")
+                start=start.strftime("%Y%m%d%H%M%S %z"),
+                stop=stop.strftime("%Y%m%d%H%M%S %z")
             )
-            etree.SubElement(pr,"title").text = p["title"]
-            etree.SubElement(pr,"desc").text = p.get("description","")
+            etree.SubElement(pr, "title").text = p.get("showname", "N/A")
+            etree.SubElement(pr, "desc").text = p.get("description", "")
+        except Exception:
+            continue
 
-    # JioTV fallback (today)
-    for p in jio_epg(ch["jio_id"]):
-        s = datetime.fromtimestamp(int(p["start_time"]), TZ)
-        e = datetime.fromtimestamp(int(p["end_time"]), TZ)
-        pr = etree.SubElement(root,"programme",
-            channel=ch["id"],
-            start=s.strftime("%Y%m%d%H%M%S %z"),
-            stop=e.strftime("%Y%m%d%H%M%S %z")
-        )
-        etree.SubElement(pr,"title").text = p["showname"]
-        etree.SubElement(pr,"desc").text = p.get("description","")
+# --------------- WRITE FILE -------------
+tree = etree.ElementTree(root)
+tree.write(
+    "epg.xml",
+    pretty_print=True,
+    encoding="UTF-8",
+    xml_declaration=True
+)
 
-etree.ElementTree(root).write("epg.xml",pretty_print=True,xml_declaration=True,encoding="UTF-8")
-print("Hybrid EPG generated")
+print("✅ Hybrid EPG generated successfully")
