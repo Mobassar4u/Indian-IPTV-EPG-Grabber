@@ -116,7 +116,7 @@ for ch in channels:
 # --------------- WRITE FILE -------------
 tree = etree.ElementTree(root)
 tree.write(
-    "epg.xml",
+    "hybrid-epg.xml",
     pretty_print=True,
     encoding="UTF-8",
     xml_declaration=True
