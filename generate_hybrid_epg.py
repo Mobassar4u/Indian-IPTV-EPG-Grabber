@@ -5,7 +5,7 @@ import pytz
 
 TZ = pytz.timezone("Asia/Kolkata")
 
-with open("Indian-TV-EPG/channels.json") as f:
+with open("channels.json") as f:
     channels = json.load(f)
 
 root = etree.Element("tv")
