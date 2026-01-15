@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install requests pytz lxml
-      - run: python epg/generate_hybrid_epg.py
+      - run: python Indian-TV-EPG/generate_hybrid_epg.py
       - run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
